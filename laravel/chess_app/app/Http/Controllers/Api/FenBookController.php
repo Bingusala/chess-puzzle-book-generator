@@ -25,6 +25,7 @@ class FenBookController extends Controller
             'light_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'bg_color'     => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'hf_bg_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'page_size'    => 'nullable|in:A4,A5',
         ]);
 
         $text = file_get_contents($request->file('file')->getRealPath());
@@ -44,8 +45,9 @@ class FenBookController extends Controller
             ];
         }
 
-        $perPage = (int)$request->input('per_page', 4);
-        $pages   = array_chunk($positions, $perPage);
+        $perPage  = (int)$request->input('per_page', 4);
+        $pages    = array_chunk($positions, $perPage);
+        $pageSize = $request->input('page_size', 'A4');
 
         $pdf = Pdf::loadView('pdf.book', [
             'pages'       => $pages,
@@ -57,7 +59,8 @@ class FenBookController extends Controller
             'lightColor'  => $request->input('light_color', '#ffffff'),
             'bgColor'     => $request->input('bg_color',    '#ffffff'),
             'hfBgColor'   => $request->input('hf_bg_color', '#ffffff'),
-        ])->setPaper('a4', 'portrait');
+            'pageSize'    => $pageSize,
+        ])->setPaper(strtolower($pageSize), 'portrait');
 
         return $pdf->stream('chess_book.pdf');
     }

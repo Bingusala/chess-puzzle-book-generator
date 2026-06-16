@@ -1,12 +1,15 @@
 @php
 /**
- * DomPDF A4: 794px × 1123px at 96dpi
- * Page padding: 22px top / 18px bottom / 25px sides → content 744px × ~1083px
+ * All pixel constants below are tuned for DomPDF A4 (794px × 1123px at 96dpi,
+ * content 744px × ~1083px after page padding). For A5 — exactly an A4 sheet
+ * folded in half, same aspect ratio — every constant is scaled down by the
+ * same linear factor (~0.705 ≈ 1/√2) so the whole layout shrinks uniformly
+ * instead of needing a second hand-tuned set of values per perPage tier.
  *
- * perPage=8 (2 cols × 4 rows): cellW=20, boardW=167   [table layout]
- * perPage=4 (2 cols × 2 rows): cellW=42, boardW=350   [table layout]
- * perPage=2 (1 col × 2 rows): cellW=48, boardW=400   [div layout — avoids DomPDF td-stretch]
- * perPage=1 (1 col × 1 row):  cellW=80, boardW=666   [div layout]
+ * perPage=8 (2 cols × 4 rows) @ A4: cellW=20, boardW=167   [table layout]
+ * perPage=4 (2 cols × 2 rows) @ A4: cellW=42, boardW=350   [table layout]
+ * perPage=2 (1 col × 2 rows)  @ A4: cellW=48, boardW=400   [div layout — avoids DomPDF td-stretch]
+ * perPage=1 (1 col × 1 row)   @ A4: cellW=80, boardW=666   [div layout]
  *
  * Height budget for perPage=2 (header 35 + footer 26 + padding 40):
  *   2 × (board 426px + div-margin 14px + answer-lines 46px) + 101 = 1073 < 1123 ✓
@@ -15,17 +18,30 @@
  * DomPDF stretches nested tables to fill parent <td> width even with explicit px widths,
  * which inflates cellW from 48→88 and causes single-board-per-page overflow.
  */
+$scale = ($pageSize ?? 'A4') === 'A5' ? 0.705 : 1.0;
+$px = fn($n) => max(1, (int) round($n * $scale));
+
 if ($perPage >= 8) {
-    $cols = 2; $colW = 372; $cellW = 20; $coordW = 7; $pieceF = 13; $coordF = 7;
+    $cols = 2; $cellW = $px(20); $coordW = $px(7);  $pieceF = $px(13); $coordF = $px(7);
 } elseif ($perPage == 4) {
-    $cols = 2; $colW = 372; $cellW = 42; $coordW = 14; $pieceF = 28; $coordF = 9;
+    $cols = 2; $cellW = $px(42); $coordW = $px(14); $pieceF = $px(28); $coordF = $px(9);
 } elseif ($perPage == 2) {
-    $cols = 1; $colW = 744; $cellW = 48; $coordW = 16; $pieceF = 32; $coordF = 11;
+    $cols = 1; $cellW = $px(48); $coordW = $px(16); $pieceF = $px(32); $coordF = $px(11);
 } else {
-    $cols = 1; $colW = 744; $cellW = 80; $coordW = 26; $pieceF = 54; $coordF = 16;
+    $cols = 1; $cellW = $px(80); $coordW = $px(26); $pieceF = $px(54); $coordF = $px(16);
 }
-$boardW = $coordW + 8 * $cellW;   // 350 | 400 | 666
-$tableW = 744;
+$boardW = $coordW + 8 * $cellW;
+$tableW = $px(744);
+$colW   = intdiv($tableW, 2);
+
+$padTop = $px(22); $padSide = $px(25); $padBot = $px(18);
+$hdrFont = $px(13); $ftrFont = $px(10); $bhFont = $px(11);
+$hdrPad = $px(5); $hdrMargin = $px(14);
+$bcellPadTop = $px(5); $bcellPadX = $px(6); $bcellPadBot = $px(10);
+$bhPadY = $px(5); $bhPadX = $px(7);
+$ansRowMarginTop = $px(8); $ansHeight = $px(14);
+$divMarginBottom = $px(14);
+$footerMarginTop = $px(10); $footerPadTop = $px(4); $footerNumColW = $px(40);
 @endphp
 <!DOCTYPE html>
 <html>
@@ -35,20 +51,20 @@ $tableW = 744;
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColor }}; font-size: 10px; }
 
-.page  { padding: 22px 25px 18px 25px; page-break-after: always; }
+.page  { padding: {{ $padTop }}px {{ $padSide }}px {{ $padBot }}px {{ $padSide }}px; page-break-after: always; }
 .page:last-child { page-break-after: auto; }
 
 .p-header {
-  font-size: 13px; font-weight: bold;
+  font-size: {{ $hdrFont }}px; font-weight: bold;
   border-bottom: 1.5px solid #111;
-  padding-bottom: 5px; margin-bottom: 14px;
+  padding-bottom: {{ $hdrPad }}px; margin-bottom: {{ $hdrMargin }}px;
   width: {{ $tableW }}px;
   background: {{ $hfBgColor }};
 }
 
 .grid { border-collapse: collapse; table-layout: fixed; }
 
-.bcell { vertical-align: top; padding: 5px 6px 10px 6px; }
+.bcell { vertical-align: top; padding: {{ $bcellPadTop }}px {{ $bcellPadX }}px {{ $bcellPadBot }}px {{ $bcellPadX }}px; }
 
 /* ── The board outer box ── */
 .board-box {
@@ -59,8 +75,8 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
 }
 
 /* header inside the board box */
-.bh-no   { font-size: 11px; font-weight: bold; padding: 5px 7px; border-bottom: 1px solid #ccc; }
-.bh-side { font-size: 11px; font-weight: bold; padding: 5px 7px; border-bottom: 1px solid #ccc; text-align: right; }
+.bh-no   { font-size: {{ $bhFont }}px; font-weight: bold; padding: {{ $bhPadY }}px {{ $bhPadX }}px; border-bottom: 1px solid #ccc; }
+.bh-side { font-size: {{ $bhFont }}px; font-weight: bold; padding: {{ $bhPadY }}px {{ $bhPadX }}px; border-bottom: 1px solid #ccc; text-align: right; }
 
 /* board squares — colors injected via inline styles */
 .sq { text-align: center; vertical-align: middle; }
@@ -70,12 +86,12 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
 .co-file { text-align: center; vertical-align: middle; color: #444; border-top: 1px solid #ccc; }
 
 /* answer lines below board: short segments placed side by side in one row */
-.ans-row { margin-top: 8px; white-space: nowrap; }
-.ans { display: inline-block; border-bottom: 1px solid #888; height: 14px; }
+.ans-row { margin-top: {{ $ansRowMarginTop }}px; white-space: nowrap; }
+.ans { display: inline-block; border-bottom: 1px solid #888; height: {{ $ansHeight }}px; }
 
 /* page footer */
-.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: 10px; background: {{ $hfBgColor }}; }
-.p-footer td { font-size: 10px; border-top: 1.5px solid #111; padding-top: 4px; }
+.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: {{ $footerMarginTop }}px; background: {{ $hfBgColor }}; }
+.p-footer td { font-size: {{ $ftrFont }}px; border-top: 1.5px solid #111; padding-top: {{ $footerPadTop }}px; }
 </style>
 </head>
 <body>
@@ -94,7 +110,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
     <tr>
       @foreach($rowItems as $pos)
       <td class="bcell" width="{{ $colW }}" style="width:{{ $colW }}px;">
-        @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor'))
+        @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale'))
       </td>
       @endforeach
       @if(count($rowItems) < 2)
@@ -107,8 +123,8 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
   {{-- Single-column layout (perPage=1 or perPage=2): divs prevent DomPDF td-stretch --}}
   @else
   @foreach($pagePositions as $pos)
-  <div style="margin-bottom:14px;">
-    @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor'))
+  <div style="margin-bottom:{{ $divMarginBottom }}px;">
+    @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale'))
   </div>
   @endforeach
   @endif
@@ -116,8 +132,8 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
   @if($footer)
   <table class="p-footer" width="{{ $tableW }}" style="width:{{ $tableW }}px;">
     <tr>
-      <td style="width:{{ $tableW - 40 }}px;">{{ $footer }}</td>
-      <td style="width:40px; text-align:right;">{{ $pgIdx + 1 }}</td>
+      <td style="width:{{ $tableW - $footerNumColW }}px;">{{ $footer }}</td>
+      <td style="width:{{ $footerNumColW }}px; text-align:right;">{{ $pgIdx + 1 }}</td>
     </tr>
   </table>
   @endif

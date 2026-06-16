@@ -51,8 +51,9 @@
 {{-- ── Short answer-line segments, side by side in one row ── --}}
 @if($answerCount > 0)
 @php
-  $gap  = 10;
-  $segW = max(20, intdiv($boardW - ($answerCount - 1) * $gap, $answerCount));
+  $gap  = max(1, (int) round(10 * ($scale ?? 1.0)));
+  $minSegW = max(1, (int) round(20 * ($scale ?? 1.0)));
+  $segW = max($minSegW, intdiv($boardW - ($answerCount - 1) * $gap, $answerCount));
 @endphp
 <div class="ans-row">
   @for($i = 0; $i < $answerCount; $i++)

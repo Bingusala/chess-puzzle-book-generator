@@ -259,10 +259,11 @@ function MiniChessBoard({ pos, dark, light, cellSize, answerCount }) {
 }
 
 /* ── realistic, paginated preview of the actual book that will be generated ── */
-function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor }) {
+function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor, pageSize }) {
   const pp   = parseInt(perPage, 10) || 4
   const cols = pp >= 4 ? 2 : 1
   const ac   = Math.max(0, parseInt(answerCount, 10) || 0)
+  const psScale = pageSize === 'A5' ? 0.705 : 1
 
   const pages = useMemo(() => {
     const positions = fens.map((fen, i) => ({ number: i + 1, board: fenToBoard(fen), side: sideToMove(fen) }))
@@ -280,10 +281,12 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const rows = []
   for (let i = 0; i < current.length; i += cols) rows.push(current.slice(i, i + cols))
 
-  const sheetW  = 280
+  const sheetW  = Math.round(280 * psScale)
   const sheetH  = Math.round(sheetW * 1123 / 744)
-  const padX    = 14
-  const colGap  = 8
+  const padX    = Math.round(14 * psScale)
+  const colGap  = Math.round(8 * psScale)
+  const bandH1  = Math.max(8, Math.round(16 * psScale))
+  const bandH2  = Math.max(7, Math.round(13 * psScale))
   const innerW  = sheetW - padX * 2
   const colW    = cols === 2 ? (innerW - colGap) / 2 : innerW
   const cellSize = colW / 8
@@ -338,7 +341,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
           transition: 'background .25s',
         }}>
           <div style={{
-            height: 16, background: hfBgColor, flexShrink: 0,
+            height: bandH1, background: hfBgColor, flexShrink: 0,
             borderBottom: header ? '1px solid #111' : 'none',
             display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
@@ -358,7 +361,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
           </div>
 
           <div style={{
-            height: 13, background: hfBgColor, flexShrink: 0,
+            height: bandH2, background: hfBgColor, flexShrink: 0,
             borderTop: footer ? '1px solid #111' : 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
@@ -516,14 +519,14 @@ function Field({ label, value, onChange, type='text', placeholder='' }) {
 }
 
 /* ── per-page selector ── */
-function PageToggle({ value, onChange }) {
+function Toggle({ label, value, onChange, options }) {
   return (
     <div>
       <label style={{ fontSize:11, fontWeight:600, color:T.muted, textTransform:'uppercase', letterSpacing:'.06em', display:'block', marginBottom:6 }}>
-        Boards per page
+        {label}
       </label>
       <div style={{ display:'flex', gap:6 }}>
-        {['1','2','4','8'].map(v => (
+        {options.map(v => (
           <button key={v} onClick={() => onChange(v)} style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:14, fontWeight:600,
             border: `1px solid ${value===v ? T.accent : 'rgba(255,255,255,0.08)'}`,
@@ -539,6 +542,12 @@ function PageToggle({ value, onChange }) {
       </div>
     </div>
   )
+}
+function PageToggle({ value, onChange }) {
+  return <Toggle label="Boards per page" value={value} onChange={onChange} options={['1','2','4','8']}/>
+}
+function PageSizeToggle({ value, onChange }) {
+  return <Toggle label="Page size" value={value} onChange={onChange} options={['A4','A5']}/>
 }
 
 /* ── progress bar ── */
@@ -713,6 +722,7 @@ function App() {
   const [lightColor, setLightColor]   = useState('#ffffff')
   const [bgColor, setBgColor]         = useState('#ffffff')
   const [hfBgColor, setHfBgColor]     = useState('#ffffff')
+  const [pageSize, setPageSize]       = useState('A4')
   const [progress, setProgress]       = useState({ boards:0, pages:0, pdf:0 })
   const [status, setStatus]           = useState(null)
   const [busy, setBusy]               = useState(false)
@@ -754,6 +764,7 @@ function App() {
     form.append('light_color', lightColor)
     form.append('bg_color', bgColor)
     form.append('hf_bg_color', hfBgColor)
+    form.append('page_size', pageSize)
 
     try {
       const res = await fetch('/api/fen/book', { method:'POST', body:form })
@@ -861,6 +872,7 @@ function App() {
                   <Field label="Answer lines" value={answerCount} onChange={setAnswerCount} type="number" placeholder="1"/>
                   <PageToggle value={perPage} onChange={setPerPage}/>
                 </div>
+                <PageSizeToggle value={pageSize} onChange={setPageSize}/>
 
                 {/* Board color customizer */}
                 <div style={{
@@ -941,6 +953,7 @@ function App() {
                 lightColor={lightColor}
                 bgColor={bgColor}
                 hfBgColor={hfBgColor}
+                pageSize={pageSize}
               />
             </Card>
 
