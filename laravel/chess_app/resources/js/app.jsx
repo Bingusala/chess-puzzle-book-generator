@@ -705,6 +705,30 @@ function ProgressBar({ label, pct, idx=0 }) {
   )
 }
 
+/* ── progress popup ── */
+function ProgressModal({ progress }) {
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(5,7,16,0.65)',
+      backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:20,
+    }}>
+      <Card glow style={{ width:'100%', maxWidth:380 }}>
+        <SectionLabel icon={<Icon.Sparkle s={14} c={T.gold}/>}>
+          Generating your book…
+        </SectionLabel>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <ProgressBar label="Creating Boards" pct={progress.boards} idx={0}/>
+          <ProgressBar label="Building Pages"  pct={progress.pages}  idx={1}/>
+          <ProgressBar label="Generating PDF"  pct={progress.pdf}    idx={2}/>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 /* ── drop zone ── */
 function DropZone({ file, onFile, inputRef }) {
   const [drag, setDrag] = useState(false)
@@ -932,6 +956,7 @@ function App() {
   return (
     <>
       <InjectCSS/>
+      {busy && <ProgressModal progress={progress}/>}
       <div className="chess-bg" style={{ minHeight:'100vh', padding:'48px 20px 60px', zoom:1.15 }}>
 
         {/* ── Hero header ── */}
@@ -1077,6 +1102,34 @@ function App() {
               </div>
             </Card>
 
+            {/* Status */}
+            {status && <StatusBanner status={status}/>}
+
+            {/* Create button */}
+            <button
+              onClick={handleCreate}
+              disabled={!canGo}
+              style={{
+                width:'100%', padding:'16px 24px',
+                borderRadius:14, border:'none',
+                background: canGo
+                  ? `linear-gradient(135deg, ${T.accent}, ${T.accent2})`
+                  : 'rgba(255,255,255,0.05)',
+                color: canGo ? '#fff' : T.subtle,
+                fontSize:15, fontWeight:700,
+                cursor: canGo ? 'pointer' : 'not-allowed',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                boxShadow: canGo ? `0 4px 24px ${T.accent}50, 0 0 0 1px ${T.accent}40` : 'none',
+                transition:'all .25s',
+                animation: canGo && !busy ? 'glow 2.5s ease-in-out infinite' : 'none',
+              }}
+            >
+              {busy
+                ? <><div className="spin" style={{ width:18,height:18,border:'2px solid #ffffff30',borderTop:'2px solid #fff',borderRadius:'50%'}}/> Creating PDF…</>
+                : <><Icon.Book s={18} c="#fff"/> Create Book PDF</>
+              }
+            </button>
+
           </div>
 
           {/* ══ RIGHT column ══ */}
@@ -1097,18 +1150,6 @@ function App() {
                 pageSize={pageSize}
                 rangeRules={rangeRules}
               />
-            </Card>
-
-            {/* Progress card */}
-            <Card glow={busy}>
-              <SectionLabel icon={<Icon.Sparkle s={14} c={T.gold}/>}>
-                Progress
-              </SectionLabel>
-              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                <ProgressBar label="Creating Boards" pct={progress.boards} idx={0}/>
-                <ProgressBar label="Building Pages"  pct={progress.pages}  idx={1}/>
-                <ProgressBar label="Generating PDF"  pct={progress.pdf}    idx={2}/>
-              </div>
             </Card>
 
             {/* How it works card */}
@@ -1138,34 +1179,6 @@ function App() {
                 ))}
               </div>
             </Card>
-
-            {/* Status */}
-            {status && <StatusBanner status={status}/>}
-
-            {/* Create button */}
-            <button
-              onClick={handleCreate}
-              disabled={!canGo}
-              style={{
-                width:'100%', padding:'16px 24px',
-                borderRadius:14, border:'none',
-                background: canGo
-                  ? `linear-gradient(135deg, ${T.accent}, ${T.accent2})`
-                  : 'rgba(255,255,255,0.05)',
-                color: canGo ? '#fff' : T.subtle,
-                fontSize:15, fontWeight:700,
-                cursor: canGo ? 'pointer' : 'not-allowed',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                boxShadow: canGo ? `0 4px 24px ${T.accent}50, 0 0 0 1px ${T.accent}40` : 'none',
-                transition:'all .25s',
-                animation: canGo && !busy ? 'glow 2.5s ease-in-out infinite' : 'none',
-              }}
-            >
-              {busy
-                ? <><div className="spin" style={{ width:18,height:18,border:'2px solid #ffffff30',borderTop:'2px solid #fff',borderRadius:'50%'}}/> Creating PDF…</>
-                : <><Icon.Book s={18} c="#fff"/> Create Book PDF</>
-              }
-            </button>
 
           </div>
         </div>
