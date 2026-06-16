@@ -598,7 +598,7 @@ function RangeRulesEditor({ rules, onChange, enabled, onToggle }) {
 
   if (!enabled) {
     return (
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+      <div>
         <button onClick={() => onToggle(true)} style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
           padding:'10px 0', fontSize:12, fontWeight:600, color:T.violet,
@@ -611,7 +611,7 @@ function RangeRulesEditor({ rules, onChange, enabled, onToggle }) {
   }
 
   return (
-    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 14 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon.Book s={14} c={T.violet}/>
@@ -972,6 +972,8 @@ function App() {
                 Customize
               </SectionLabel>
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                <RangeRulesEditor rules={rangeRules} onChange={setRangeRules} enabled={rangeEnabled} onToggle={setRangeEnabled}/>
+
                 {!rangeEnabled && (
                   <>
                     <Field label="Header" value={header} onChange={setHeader} placeholder="e.g. Chapter 1 — Mate in 1"/>
@@ -984,8 +986,6 @@ function App() {
                   <PageToggle value={perPage} onChange={setPerPage}/>
                 </div>
                 <PageSizeToggle value={pageSize} onChange={setPageSize}/>
-
-                <RangeRulesEditor rules={rangeRules} onChange={setRangeRules} enabled={rangeEnabled} onToggle={setRangeEnabled}/>
 
                 {/* Board color customizer */}
                 <div style={{
