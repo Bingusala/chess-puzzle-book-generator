@@ -96,11 +96,12 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
 </head>
 <body>
 
-@foreach($pages as $pgIdx => $pagePositions)
+@foreach($pages as $pgIdx => $page)
+@php $pagePositions = $page['positions']; $pageHeader = $page['header']; $pageFooter = $page['footer']; @endphp
 <div class="page">
 
-  @if($header)
-  <div class="p-header">{{ $header }}</div>
+  @if($pageHeader)
+  <div class="p-header">{{ $pageHeader }}</div>
   @endif
 
   {{-- 2-column layout (perPage=4): table keeps boards side-by-side at fixed widths --}}
@@ -129,10 +130,10 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
   @endforeach
   @endif
 
-  @if($footer)
+  @if($pageFooter)
   <table class="p-footer" width="{{ $tableW }}" style="width:{{ $tableW }}px;">
     <tr>
-      <td style="width:{{ $tableW - $footerNumColW }}px;">{{ $footer }}</td>
+      <td style="width:{{ $tableW - $footerNumColW }}px;">{{ $pageFooter }}</td>
       <td style="width:{{ $footerNumColW }}px; text-align:right;">{{ $pgIdx + 1 }}</td>
     </tr>
   </table>

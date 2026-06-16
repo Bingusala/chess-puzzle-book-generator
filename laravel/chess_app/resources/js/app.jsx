@@ -259,7 +259,17 @@ function MiniChessBoard({ pos, dark, light, cellSize, answerCount }) {
 }
 
 /* ── realistic, paginated preview of the actual book that will be generated ── */
-function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor, pageSize }) {
+function resolveHeaderFooter(number, rangeRules, defaultHeader, defaultFooter) {
+  for (const r of rangeRules) {
+    const from = parseInt(r.from, 10), to = parseInt(r.to, 10)
+    if (!isNaN(from) && !isNaN(to) && number >= from && number <= to) {
+      return [r.header ? r.header : defaultHeader, r.footer ? r.footer : defaultFooter]
+    }
+  }
+  return [defaultHeader, defaultFooter]
+}
+
+function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor, pageSize, rangeRules = [] }) {
   const pp   = parseInt(perPage, 10) || 4
   const cols = pp >= 4 ? 2 : 1
   const ac   = Math.max(0, parseInt(answerCount, 10) || 0)
@@ -280,6 +290,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const current = pages[safeIdx] || []
   const rows = []
   for (let i = 0; i < current.length; i += cols) rows.push(current.slice(i, i + cols))
+  const [pageHeader, pageFooter] = resolveHeaderFooter(current[0]?.number ?? 1, rangeRules, header, footer)
 
   const sheetW  = Math.round(280 * psScale)
   const sheetH  = Math.round(sheetW * 1123 / 744)
@@ -342,11 +353,11 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
         }}>
           <div style={{
             height: bandH1, background: hfBgColor, flexShrink: 0,
-            borderBottom: header ? '1px solid #111' : 'none',
+            borderBottom: pageHeader ? '1px solid #111' : 'none',
             display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
           }}>
-            {header && <span style={{ fontSize: 8, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{header}</span>}
+            {pageHeader && <span style={{ fontSize: 8, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{pageHeader}</span>}
           </div>
 
           <div style={{ flex: 1, padding: `8px ${padX}px`, display: 'flex', flexDirection: 'column', gap: colGap }}>
@@ -362,12 +373,12 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
 
           <div style={{
             height: bandH2, background: hfBgColor, flexShrink: 0,
-            borderTop: footer ? '1px solid #111' : 'none',
+            borderTop: pageFooter ? '1px solid #111' : 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
           }}>
-            {footer && <span style={{ fontSize: 7, color: '#111', whiteSpace: 'nowrap' }}>{footer}</span>}
-            {footer && <span style={{ fontSize: 7, color: '#111' }}>{safeIdx + 1}</span>}
+            {pageFooter && <span style={{ fontSize: 7, color: '#111', whiteSpace: 'nowrap' }}>{pageFooter}</span>}
+            {pageFooter && <span style={{ fontSize: 7, color: '#111' }}>{safeIdx + 1}</span>}
           </div>
         </div>
       )}
@@ -550,6 +561,75 @@ function PageSizeToggle({ value, onChange }) {
   return <Toggle label="Page size" value={value} onChange={onChange} options={['A4','A5']}/>
 }
 
+/* ── per-range header/footer overrides ── */
+const miniInputStyle = {
+  width: '100%', padding: '7px 8px', fontSize: 12,
+  background: 'rgba(10,14,30,0.8)', border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 7, color: '#e2e8f0', outline: 'none',
+}
+const miniLabelStyle = {
+  fontSize: 10, fontWeight: 600, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.05em',
+}
+
+function RangeRow({ rule, onChange, onRemove }) {
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'48px 48px 1fr 1fr 24px', gap:6, alignItems:'center', marginBottom:7 }}>
+      <input type="number" min="1" placeholder="1" value={rule.from} style={miniInputStyle}
+        onChange={e => onChange({ ...rule, from: e.target.value })}/>
+      <input type="number" min="1" placeholder="10" value={rule.to} style={miniInputStyle}
+        onChange={e => onChange({ ...rule, to: e.target.value })}/>
+      <input type="text" placeholder="Header" value={rule.header} style={miniInputStyle}
+        onChange={e => onChange({ ...rule, header: e.target.value })}/>
+      <input type="text" placeholder="Footer" value={rule.footer} style={miniInputStyle}
+        onChange={e => onChange({ ...rule, footer: e.target.value })}/>
+      <button onClick={onRemove} title="Remove" style={{
+        width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
+        background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, cursor:'pointer',
+      }}><Icon.X s={11} c={T.red}/></button>
+    </div>
+  )
+}
+
+function RangeRulesEditor({ rules, onChange }) {
+  const addRule = () => onChange([...rules, { id: Date.now() + Math.random(), from:'', to:'', header:'', footer:'' }])
+  const updateRule = (id, next) => onChange(rules.map(r => r.id === id ? next : r))
+  const removeRule = id => onChange(rules.filter(r => r.id !== id))
+
+  return (
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <Icon.Book s={14} c={T.violet}/>
+          <span style={{ fontSize:11, fontWeight:700, color:'#e2e8f0', letterSpacing:'.01em' }}>Header/Footer by Number Range</span>
+        </div>
+        <button onClick={addRule} style={{
+          fontSize:11, fontWeight:600, color:T.violet, background:'rgba(124,58,237,0.12)',
+          border:`1px solid ${T.accent}40`, borderRadius:8, padding:'5px 10px', cursor:'pointer',
+        }}>+ Add range</button>
+      </div>
+
+      {rules.length === 0 ? (
+        <div style={{ fontSize:11, color:T.subtle, lineHeight:1.4 }}>
+          Optional — override the header/footer text for specific puzzle number ranges (e.g. puzzles 1–20 get one header, 21–40 another). Leave empty to use the header/footer above for the whole book.
+        </div>
+      ) : (
+        <>
+          <div style={{ display:'grid', gridTemplateColumns:'48px 48px 1fr 1fr 24px', gap:6, marginBottom:6 }}>
+            <span style={miniLabelStyle}>From</span>
+            <span style={miniLabelStyle}>To</span>
+            <span style={miniLabelStyle}>Header</span>
+            <span style={miniLabelStyle}>Footer</span>
+            <span/>
+          </div>
+          {rules.map(r => (
+            <RangeRow key={r.id} rule={r} onChange={next => updateRule(r.id, next)} onRemove={() => removeRule(r.id)}/>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ── progress bar ── */
 const BAR_COLORS = [
   ['#7c3aed','#6366f1'],
@@ -723,6 +803,7 @@ function App() {
   const [bgColor, setBgColor]         = useState('#ffffff')
   const [hfBgColor, setHfBgColor]     = useState('#ffffff')
   const [pageSize, setPageSize]       = useState('A4')
+  const [rangeRules, setRangeRules]   = useState([])
   const [progress, setProgress]       = useState({ boards:0, pages:0, pdf:0 })
   const [status, setStatus]           = useState(null)
   const [busy, setBusy]               = useState(false)
@@ -765,6 +846,10 @@ function App() {
     form.append('bg_color', bgColor)
     form.append('hf_bg_color', hfBgColor)
     form.append('page_size', pageSize)
+    const validRangeRules = rangeRules
+      .map(r => ({ from: parseInt(r.from, 10), to: parseInt(r.to, 10), header: r.header || '', footer: r.footer || '' }))
+      .filter(r => !isNaN(r.from) && !isNaN(r.to) && r.from > 0 && r.to >= r.from)
+    form.append('range_rules', JSON.stringify(validRangeRules))
 
     try {
       const res = await fetch('/api/fen/book', { method:'POST', body:form })
@@ -874,6 +959,8 @@ function App() {
                 </div>
                 <PageSizeToggle value={pageSize} onChange={setPageSize}/>
 
+                <RangeRulesEditor rules={rangeRules} onChange={setRangeRules}/>
+
                 {/* Board color customizer */}
                 <div style={{
                   borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -954,6 +1041,7 @@ function App() {
                 bgColor={bgColor}
                 hfBgColor={hfBgColor}
                 pageSize={pageSize}
+                rangeRules={rangeRules}
               />
             </Card>
 
