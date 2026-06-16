@@ -153,6 +153,27 @@ function BoardPreview({ dark, light }) {
   )
 }
 
+/* ── live page-background preview (header/footer stay white) ── */
+function PagePreview({ bg }) {
+  return (
+    <div style={{ flexShrink: 0 }}>
+      <div style={{ fontSize:10, fontWeight:600, color:T.subtle, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>Preview</div>
+      <div style={{
+        width: 70, height: 96,
+        border: '2px solid #444', borderRadius: 5,
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+        display: 'flex', flexDirection: 'column',
+        transition: 'background .25s',
+      }}>
+        <div style={{ height: 12, background: '#fff', borderBottom: '1.5px solid #111', flexShrink: 0 }}/>
+        <div style={{ flex: 1, background: bg, transition: 'background .25s' }}/>
+        <div style={{ height: 9, background: '#fff', borderTop: '1.5px solid #111', flexShrink: 0 }}/>
+      </div>
+    </div>
+  )
+}
+
 /* ── hex color input with swatch ── */
 function ColorInput({ label, value, onChange }) {
   return (
@@ -492,6 +513,7 @@ function App() {
   const [pdfName, setPdfName]         = useState('')
   const [darkColor, setDarkColor]     = useState('#6b8bc3')
   const [lightColor, setLightColor]   = useState('#ffffff')
+  const [bgColor, setBgColor]         = useState('#ffffff')
   const [progress, setProgress]       = useState({ boards:0, pages:0, pdf:0 })
   const [status, setStatus]           = useState(null)
   const [busy, setBusy]               = useState(false)
@@ -530,6 +552,7 @@ function App() {
     form.append('per_page', perPage || '4')
     form.append('dark_color', darkColor)
     form.append('light_color', lightColor)
+    form.append('bg_color', bgColor)
 
     try {
       const res = await fetch('/api/fen/book', { method:'POST', body:form })
@@ -673,6 +696,25 @@ function App() {
 
                     {/* Right: live board preview */}
                     <BoardPreview dark={darkColor} light={lightColor}/>
+                  </div>
+                </div>
+
+                {/* Page background customizer */}
+                <div style={{
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  paddingTop: 14,
+                }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12 }}>
+                    <Icon.Palette s={14} c={T.violet}/>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#e2e8f0', letterSpacing:'.01em' }}>Page Background</span>
+                  </div>
+
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:14, alignItems:'start' }}>
+                    <ColorInput label="Background color" value={bgColor} onChange={setBgColor}/>
+                    <PagePreview bg={bgColor}/>
+                  </div>
+                  <div style={{ fontSize:11, color:T.subtle, marginTop:8, lineHeight:1.4 }}>
+                    Applies to the page area only — header and footer bands stay white.
                   </div>
                 </div>
               </div>

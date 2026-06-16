@@ -33,7 +33,7 @@ $tableW = 744;
 <meta charset="utf-8"/>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: DejaVu Sans, sans-serif; color: #111; background: #fff; font-size: 10px; }
+body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColor }}; font-size: 10px; }
 
 .page  { padding: 22px 25px 18px 25px; page-break-after: always; }
 .page:last-child { page-break-after: auto; }
@@ -43,6 +43,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: #fff; font
   border-bottom: 1.5px solid #111;
   padding-bottom: 5px; margin-bottom: 14px;
   width: {{ $tableW }}px;
+  background: #fff;
 }
 
 .grid { border-collapse: collapse; table-layout: fixed; }
@@ -73,7 +74,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: #fff; font
 .ans { display: inline-block; border-bottom: 1px solid #888; height: 14px; }
 
 /* page footer */
-.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
+.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: 10px; background: #fff; }
 .p-footer td { font-size: 10px; border-top: 1.5px solid #111; padding-top: 4px; }
 </style>
 </head>
