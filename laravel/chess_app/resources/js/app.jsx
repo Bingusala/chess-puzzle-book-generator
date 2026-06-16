@@ -591,9 +591,25 @@ function RangeRow({ rule, onChange, onRemove }) {
 }
 
 function RangeRulesEditor({ rules, onChange }) {
+  const [enabled, setEnabled] = useState(rules.length > 0)
   const addRule = () => onChange([...rules, { id: Date.now() + Math.random(), from:'', to:'', header:'', footer:'' }])
   const updateRule = (id, next) => onChange(rules.map(r => r.id === id ? next : r))
   const removeRule = id => onChange(rules.filter(r => r.id !== id))
+  const disable = () => { setEnabled(false); onChange([]) }
+
+  if (!enabled) {
+    return (
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+        <button onClick={() => setEnabled(true)} style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+          padding:'10px 0', fontSize:12, fontWeight:600, color:T.violet,
+          background:'rgba(124,58,237,0.08)', border:`1px dashed ${T.accent}50`, borderRadius:10, cursor:'pointer',
+        }}>
+          <Icon.Book s={14} c={T.violet}/> Customize by question number range
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
@@ -602,15 +618,21 @@ function RangeRulesEditor({ rules, onChange }) {
           <Icon.Book s={14} c={T.violet}/>
           <span style={{ fontSize:11, fontWeight:700, color:'#e2e8f0', letterSpacing:'.01em' }}>Header/Footer by Number Range</span>
         </div>
-        <button onClick={addRule} style={{
-          fontSize:11, fontWeight:600, color:T.violet, background:'rgba(124,58,237,0.12)',
-          border:`1px solid ${T.accent}40`, borderRadius:8, padding:'5px 10px', cursor:'pointer',
-        }}>+ Add range</button>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button onClick={addRule} style={{
+            fontSize:11, fontWeight:600, color:T.violet, background:'rgba(124,58,237,0.12)',
+            border:`1px solid ${T.accent}40`, borderRadius:8, padding:'5px 10px', cursor:'pointer',
+          }}>+ Add range</button>
+          <button onClick={disable} title="Disable" style={{
+            width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
+            background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, cursor:'pointer',
+          }}><Icon.X s={11} c={T.red}/></button>
+        </div>
       </div>
 
       {rules.length === 0 ? (
         <div style={{ fontSize:11, color:T.subtle, lineHeight:1.4 }}>
-          Optional — override the header/footer text for specific puzzle number ranges (e.g. puzzles 1–20 get one header, 21–40 another). Leave empty to use the header/footer above for the whole book.
+          Override the header/footer text for specific puzzle number ranges (e.g. puzzles 1–20 get one header, 21–40 another). Leave empty to use the header/footer above for the whole book.
         </div>
       ) : (
         <>
