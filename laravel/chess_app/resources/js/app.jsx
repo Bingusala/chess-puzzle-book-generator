@@ -590,17 +590,16 @@ function RangeRow({ rule, onChange, onRemove }) {
   )
 }
 
-function RangeRulesEditor({ rules, onChange }) {
-  const [enabled, setEnabled] = useState(rules.length > 0)
+function RangeRulesEditor({ rules, onChange, enabled, onToggle }) {
   const addRule = () => onChange([...rules, { id: Date.now() + Math.random(), from:'', to:'', header:'', footer:'' }])
   const updateRule = (id, next) => onChange(rules.map(r => r.id === id ? next : r))
   const removeRule = id => onChange(rules.filter(r => r.id !== id))
-  const disable = () => { setEnabled(false); onChange([]) }
+  const disable = () => { onToggle(false); onChange([]) }
 
   if (!enabled) {
     return (
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
-        <button onClick={() => setEnabled(true)} style={{
+        <button onClick={() => onToggle(true)} style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
           padding:'10px 0', fontSize:12, fontWeight:600, color:T.violet,
           background:'rgba(124,58,237,0.08)', border:`1px dashed ${T.accent}50`, borderRadius:10, cursor:'pointer',
@@ -826,6 +825,7 @@ function App() {
   const [hfBgColor, setHfBgColor]     = useState('#ffffff')
   const [pageSize, setPageSize]       = useState('A4')
   const [rangeRules, setRangeRules]   = useState([])
+  const [rangeEnabled, setRangeEnabled] = useState(false)
   const [progress, setProgress]       = useState({ boards:0, pages:0, pdf:0 })
   const [status, setStatus]           = useState(null)
   const [busy, setBusy]               = useState(false)
@@ -972,8 +972,12 @@ function App() {
                 Customize
               </SectionLabel>
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                <Field label="Header" value={header} onChange={setHeader} placeholder="e.g. Chapter 1 — Mate in 1"/>
-                <Field label="Footer" value={footer} onChange={setFooter} placeholder="e.g. Chess School 1a"/>
+                {!rangeEnabled && (
+                  <>
+                    <Field label="Header" value={header} onChange={setHeader} placeholder="e.g. Chapter 1 — Mate in 1"/>
+                    <Field label="Footer" value={footer} onChange={setFooter} placeholder="e.g. Chess School 1a"/>
+                  </>
+                )}
                 <Field label="PDF Filename" value={pdfName} onChange={setPdfName} placeholder="chess_book"/>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                   <Field label="Answer lines" value={answerCount} onChange={setAnswerCount} type="number" placeholder="1"/>
@@ -981,7 +985,7 @@ function App() {
                 </div>
                 <PageSizeToggle value={pageSize} onChange={setPageSize}/>
 
-                <RangeRulesEditor rules={rangeRules} onChange={setRangeRules}/>
+                <RangeRulesEditor rules={rangeRules} onChange={setRangeRules} enabled={rangeEnabled} onToggle={setRangeEnabled}/>
 
                 {/* Board color customizer */}
                 <div style={{
