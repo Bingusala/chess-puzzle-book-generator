@@ -43,7 +43,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
   border-bottom: 1.5px solid #111;
   padding-bottom: 5px; margin-bottom: 14px;
   width: {{ $tableW }}px;
-  background: #fff;
+  background: {{ $hfBgColor }};
 }
 
 .grid { border-collapse: collapse; table-layout: fixed; }
@@ -74,7 +74,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
 .ans { display: inline-block; border-bottom: 1px solid #888; height: 14px; }
 
 /* page footer */
-.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: 10px; background: #fff; }
+.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: 10px; background: {{ $hfBgColor }}; }
 .p-footer td { font-size: 10px; border-top: 1.5px solid #111; padding-top: 4px; }
 </style>
 </head>

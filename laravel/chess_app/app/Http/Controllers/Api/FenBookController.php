@@ -24,6 +24,7 @@ class FenBookController extends Controller
             'dark_color'   => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'light_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'bg_color'     => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'hf_bg_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
 
         $text = file_get_contents($request->file('file')->getRealPath());
@@ -55,6 +56,7 @@ class FenBookController extends Controller
             'darkColor'   => $request->input('dark_color',  '#6b8bc3'),
             'lightColor'  => $request->input('light_color', '#ffffff'),
             'bgColor'     => $request->input('bg_color',    '#ffffff'),
+            'hfBgColor'   => $request->input('hf_bg_color', '#ffffff'),
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('chess_book.pdf');

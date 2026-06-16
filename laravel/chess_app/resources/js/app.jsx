@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import ReactDOM from 'react-dom/client'
 
 /* ── SVG icon components ── */
@@ -79,6 +79,53 @@ const STARTING_BOARD = [
   ['♖','♘','♗','♕','♔','♗','♘','♖'],
 ]
 
+/* ── FEN parsing (mirrors FenBookController.php so the preview matches the real PDF) ── */
+const FEN_SYMBOLS = {
+  K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙',
+  k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟',
+}
+
+function isValidFen(fen) {
+  const placement = fen.trim().split(' ')[0]
+  return (placement.match(/\//g) || []).length === 7
+}
+
+function parseFens(text) {
+  if (!text) return []
+  const pgnMatches = [...text.matchAll(/\[FEN\s+"([^"]+)"\]/gi)].map(m => m[1])
+  if (pgnMatches.length) return pgnMatches.filter(isValidFen)
+  const fens = []
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim()
+    if (!line || line.startsWith('#')) continue
+    if (isValidFen(line)) fens.push(line)
+  }
+  return fens
+}
+
+function fenToBoard(fen) {
+  const ranks = fen.trim().split(' ')[0].split('/')
+  const board = []
+  for (let r = 0; r < 8; r++) {
+    const cells = []
+    for (const ch of (ranks[r] || '8')) {
+      if (/\d/.test(ch)) {
+        for (let i = 0; i < parseInt(ch, 10); i++) cells.push('')
+      } else {
+        cells.push(FEN_SYMBOLS[ch] || '')
+      }
+    }
+    while (cells.length < 8) cells.push('')
+    board.push(cells.slice(0, 8))
+  }
+  return board
+}
+
+function sideToMove(fen) {
+  const parts = fen.trim().split(' ')
+  return (parts[1] || 'w') === 'b' ? 'b' : 'w'
+}
+
 /* ── board color presets ── */
 const PRESETS = [
   { name: 'Classic Blue',  dark: '#6b8bc3', light: '#ffffff' },
@@ -154,7 +201,7 @@ function BoardPreview({ dark, light }) {
 }
 
 /* ── live page-background preview (header/footer stay white) ── */
-function PagePreview({ bg }) {
+function PagePreview({ bg, hfBg }) {
   return (
     <div style={{ flexShrink: 0 }}>
       <div style={{ fontSize:10, fontWeight:600, color:T.subtle, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>Preview</div>
@@ -166,10 +213,161 @@ function PagePreview({ bg }) {
         display: 'flex', flexDirection: 'column',
         transition: 'background .25s',
       }}>
-        <div style={{ height: 12, background: '#fff', borderBottom: '1.5px solid #111', flexShrink: 0 }}/>
+        <div style={{ height: 12, background: hfBg, borderBottom: '1.5px solid #111', flexShrink: 0, transition: 'background .25s' }}/>
         <div style={{ flex: 1, background: bg, transition: 'background .25s' }}/>
-        <div style={{ height: 9, background: '#fff', borderTop: '1.5px solid #111', flexShrink: 0 }}/>
+        <div style={{ height: 9, background: hfBg, borderTop: '1.5px solid #111', flexShrink: 0, transition: 'background .25s' }}/>
       </div>
+    </div>
+  )
+}
+
+/* ── one small board inside the book preview ── */
+function MiniChessBoard({ pos, dark, light, cellSize, answerCount }) {
+  const sideText = pos.side === 'b' ? 'Black' : 'White'
+  return (
+    <div style={{ flex: 1, border: '1px solid #333', borderRadius: 2, overflow: 'hidden', background: '#fff' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: Math.max(5, cellSize * 0.34), fontWeight: 700,
+        padding: '1px 3px', borderBottom: '1px solid #ccc', color: '#111',
+      }}>
+        <span>No.{pos.number}</span><span>{sideText}</span>
+      </div>
+      <div>
+        {pos.board.map((row, r) => (
+          <div key={r} style={{ display: 'flex' }}>
+            {row.map((piece, c) => (
+              <div key={c} style={{
+                width: cellSize, height: cellSize,
+                background: (r + c) % 2 !== 0 ? dark : light,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: cellSize * 0.72, lineHeight: 1, color: '#111',
+              }}>{piece}</div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {answerCount > 0 && (
+        <div style={{ display: 'flex', gap: 2, padding: '2px 3px' }}>
+          {Array.from({ length: answerCount }).map((_, i) => (
+            <div key={i} style={{ flex: 1, borderBottom: '1px solid #888', height: Math.max(2, cellSize * 0.18) }}/>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── realistic, paginated preview of the actual book that will be generated ── */
+function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor }) {
+  const pp   = parseInt(perPage, 10) || 4
+  const cols = pp >= 4 ? 2 : 1
+  const ac   = Math.max(0, parseInt(answerCount, 10) || 0)
+
+  const pages = useMemo(() => {
+    const positions = fens.map((fen, i) => ({ number: i + 1, board: fenToBoard(fen), side: sideToMove(fen) }))
+    const out = []
+    for (let i = 0; i < positions.length; i += pp) out.push(positions.slice(i, i + pp))
+    return out
+  }, [fens, pp])
+
+  const [pageIdx, setPageIdx] = useState(0)
+  useEffect(() => { setPageIdx(0) }, [fens, perPage])
+
+  const totalPages = pages.length
+  const safeIdx = Math.min(pageIdx, Math.max(0, totalPages - 1))
+  const current = pages[safeIdx] || []
+  const rows = []
+  for (let i = 0; i < current.length; i += cols) rows.push(current.slice(i, i + cols))
+
+  const sheetW  = 280
+  const sheetH  = Math.round(sheetW * 1123 / 744)
+  const padX    = 14
+  const colGap  = 8
+  const innerW  = sheetW - padX * 2
+  const colW    = cols === 2 ? (innerW - colGap) / 2 : innerW
+  const cellSize = colW / 8
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon.Book s={14} c={T.violet}/>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', letterSpacing: '.01em' }}>Live Book Preview</span>
+        </div>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setPageIdx(p => Math.max(0, p - 1))}
+              disabled={safeIdx === 0}
+              style={{
+                width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(10,14,30,0.6)', color: safeIdx === 0 ? T.subtle : T.violet,
+                cursor: safeIdx === 0 ? 'default' : 'pointer', fontSize: 13, lineHeight: 1,
+              }}
+            >‹</button>
+            <span style={{ fontSize: 11, color: T.muted }}>{safeIdx + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPageIdx(p => Math.min(totalPages - 1, p + 1))}
+              disabled={safeIdx === totalPages - 1}
+              style={{
+                width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(10,14,30,0.6)', color: safeIdx === totalPages - 1 ? T.subtle : T.violet,
+                cursor: safeIdx === totalPages - 1 ? 'default' : 'pointer', fontSize: 13, lineHeight: 1,
+              }}
+            >›</button>
+          </div>
+        )}
+      </div>
+
+      {totalPages === 0 ? (
+        <div style={{
+          width: sheetW, height: sheetH, margin: '0 auto',
+          border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 6,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center', padding: 20,
+        }}>
+          <span style={{ fontSize: 12, color: T.subtle }}>Upload a file to preview the book</span>
+        </div>
+      ) : (
+        <div style={{
+          width: sheetW, height: sheetH, margin: '0 auto',
+          background: bgColor, border: '2px solid #444', borderRadius: 6,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          transition: 'background .25s',
+        }}>
+          <div style={{
+            height: 16, background: hfBgColor, flexShrink: 0,
+            borderBottom: header ? '1px solid #111' : 'none',
+            display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
+            transition: 'background .25s',
+          }}>
+            {header && <span style={{ fontSize: 8, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{header}</span>}
+          </div>
+
+          <div style={{ flex: 1, padding: `8px ${padX}px`, display: 'flex', flexDirection: 'column', gap: colGap }}>
+            {rows.map((rowItems, ri) => (
+              <div key={ri} style={{ display: 'flex', gap: colGap }}>
+                {rowItems.map(pos => (
+                  <MiniChessBoard key={pos.number} pos={pos} dark={darkColor} light={lightColor} cellSize={cellSize} answerCount={ac}/>
+                ))}
+                {rowItems.length < cols && <div style={{ flex: 1 }}/>}
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            height: 13, background: hfBgColor, flexShrink: 0,
+            borderTop: footer ? '1px solid #111' : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
+            transition: 'background .25s',
+          }}>
+            {footer && <span style={{ fontSize: 7, color: '#111', whiteSpace: 'nowrap' }}>{footer}</span>}
+            {footer && <span style={{ fontSize: 7, color: '#111' }}>{safeIdx + 1}</span>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -514,10 +712,12 @@ function App() {
   const [darkColor, setDarkColor]     = useState('#6b8bc3')
   const [lightColor, setLightColor]   = useState('#ffffff')
   const [bgColor, setBgColor]         = useState('#ffffff')
+  const [hfBgColor, setHfBgColor]     = useState('#ffffff')
   const [progress, setProgress]       = useState({ boards:0, pages:0, pdf:0 })
   const [status, setStatus]           = useState(null)
   const [busy, setBusy]               = useState(false)
   const inputRef = useRef()
+  const fens = useMemo(() => parseFens(preview), [preview])
 
   const loadFile = f => {
     if (!f) return
@@ -553,6 +753,7 @@ function App() {
     form.append('dark_color', darkColor)
     form.append('light_color', lightColor)
     form.append('bg_color', bgColor)
+    form.append('hf_bg_color', hfBgColor)
 
     try {
       const res = await fetch('/api/fen/book', { method:'POST', body:form })
@@ -710,11 +911,14 @@ function App() {
                   </div>
 
                   <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:14, alignItems:'start' }}>
-                    <ColorInput label="Background color" value={bgColor} onChange={setBgColor}/>
-                    <PagePreview bg={bgColor}/>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                      <ColorInput label="Page background" value={bgColor} onChange={setBgColor}/>
+                      <ColorInput label="Header/footer background" value={hfBgColor} onChange={setHfBgColor}/>
+                    </div>
+                    <PagePreview bg={bgColor} hfBg={hfBgColor}/>
                   </div>
                   <div style={{ fontSize:11, color:T.subtle, marginTop:8, lineHeight:1.4 }}>
-                    Applies to the page area only — header and footer bands stay white.
+                    Page background fills each sheet; header/footer bands use their own color.
                   </div>
                 </div>
               </div>
@@ -724,6 +928,21 @@ function App() {
 
           {/* ══ RIGHT column ══ */}
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+            {/* Live book preview card */}
+            <Card>
+              <BookPreview
+                fens={fens}
+                perPage={perPage}
+                header={header}
+                footer={footer}
+                answerCount={answerCount}
+                darkColor={darkColor}
+                lightColor={lightColor}
+                bgColor={bgColor}
+                hfBgColor={hfBgColor}
+              />
+            </Card>
 
             {/* Progress card */}
             <Card glow={busy}>
