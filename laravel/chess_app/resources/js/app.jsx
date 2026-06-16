@@ -278,9 +278,21 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const pages = useMemo(() => {
     const positions = fens.map((fen, i) => ({ number: i + 1, board: fenToBoard(fen), side: sideToMove(fen) }))
     const out = []
-    for (let i = 0; i < positions.length; i += pp) out.push(positions.slice(i, i + pp))
+    let current = []
+    let currentKey = null
+    for (const pos of positions) {
+      const [h, f] = resolveHeaderFooter(pos.number, rangeRules, header, footer)
+      const key = h + '|' + f
+      if (current.length && (key !== currentKey || current.length >= pp)) {
+        out.push(current)
+        current = []
+      }
+      if (current.length === 0) currentKey = key
+      current.push(pos)
+    }
+    if (current.length) out.push(current)
     return out
-  }, [fens, pp])
+  }, [fens, pp, rangeRules, header, footer])
 
   const [pageIdx, setPageIdx] = useState(0)
   useEffect(() => { setPageIdx(0) }, [fens, perPage])

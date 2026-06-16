@@ -52,13 +52,7 @@ class FenBookController extends Controller
         $defaultFooter = trim($request->input('footer', ''));
         $rangeRules    = $this->parseRangeRules($request->input('range_rules'));
 
-        $pages = [];
-        foreach (array_chunk($positions, $perPage) as $chunk) {
-            [$pageHeader, $pageFooter] = $this->resolveHeaderFooter(
-                $chunk[0]['number'], $rangeRules, $defaultHeader, $defaultFooter
-            );
-            $pages[] = ['positions' => $chunk, 'header' => $pageHeader, 'footer' => $pageFooter];
-        }
+        $pages = $this->buildPages($positions, $perPage, $rangeRules, $defaultHeader, $defaultFooter);
 
         $pdf = Pdf::loadView('pdf.book', [
             'pages'       => $pages,
@@ -94,6 +88,40 @@ class FenBookController extends Controller
             }
         }
         return $rules;
+    }
+
+    /**
+     * Chunks positions into pages of at most $perPage boards, but also breaks
+     * the page early whenever the header/footer range changes mid-chunk —
+     * so a page never mixes boards from two different number ranges.
+     */
+    private function buildPages(array $positions, int $perPage, array $rangeRules, string $defaultHeader, string $defaultFooter): array
+    {
+        $pages = [];
+        $current = [];
+        $currentHeader = $defaultHeader;
+        $currentFooter = $defaultFooter;
+
+        foreach ($positions as $pos) {
+            [$h, $f] = $this->resolveHeaderFooter($pos['number'], $rangeRules, $defaultHeader, $defaultFooter);
+
+            if (!empty($current) && ($h !== $currentHeader || $f !== $currentFooter || count($current) >= $perPage)) {
+                $pages[] = ['positions' => $current, 'header' => $currentHeader, 'footer' => $currentFooter];
+                $current = [];
+            }
+
+            if (empty($current)) {
+                $currentHeader = $h;
+                $currentFooter = $f;
+            }
+            $current[] = $pos;
+        }
+
+        if (!empty($current)) {
+            $pages[] = ['positions' => $current, 'header' => $currentHeader, 'footer' => $currentFooter];
+        }
+
+        return $pages;
     }
 
     private function resolveHeaderFooter(int $firstNumber, array $rangeRules, string $defaultHeader, string $defaultFooter): array
