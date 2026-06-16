@@ -575,29 +575,56 @@ function PageSizeToggle({ value, onChange }) {
 
 /* ── per-range header/footer overrides ── */
 const miniInputStyle = {
-  width: '100%', padding: '7px 8px', fontSize: 12,
+  width: '100%', padding: '8px 10px', fontSize: 12,
   background: 'rgba(10,14,30,0.8)', border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 7, color: '#e2e8f0', outline: 'none',
+  borderRadius: 8, color: '#e2e8f0', outline: 'none',
 }
 const miniLabelStyle = {
   fontSize: 10, fontWeight: 600, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.05em',
+  display: 'block', marginBottom: 5,
 }
 
-function RangeRow({ rule, onChange, onRemove }) {
+function RangeRow({ index, rule, onChange, onRemove }) {
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'48px 48px 1fr 1fr 24px', gap:6, alignItems:'center', marginBottom:7 }}>
-      <input type="number" min="1" placeholder="1" value={rule.from} style={miniInputStyle}
-        onChange={e => onChange({ ...rule, from: e.target.value })}/>
-      <input type="number" min="1" placeholder="10" value={rule.to} style={miniInputStyle}
-        onChange={e => onChange({ ...rule, to: e.target.value })}/>
-      <input type="text" placeholder="Header" value={rule.header} style={miniInputStyle}
-        onChange={e => onChange({ ...rule, header: e.target.value })}/>
-      <input type="text" placeholder="Footer" value={rule.footer} style={miniInputStyle}
-        onChange={e => onChange({ ...rule, footer: e.target.value })}/>
-      <button onClick={onRemove} title="Remove" style={{
-        width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
-        background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, cursor:'pointer',
-      }}><Icon.X s={11} c={T.red}/></button>
+    <div style={{
+      background: 'rgba(10,14,30,0.45)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 12, padding: 12, marginBottom: 10,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <span style={{ fontSize:11, fontWeight:700, color:T.violet }}>Range {index + 1}</span>
+        <button onClick={onRemove} title="Remove range" style={{
+          width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center',
+          background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, cursor:'pointer',
+        }}><Icon.X s={10} c={T.red}/></button>
+      </div>
+
+      <div style={{ display:'flex', alignItems:'flex-end', gap:8, marginBottom:10 }}>
+        <div style={{ flex:1 }}>
+          <label style={miniLabelStyle}>From #</label>
+          <input type="number" min="1" placeholder="1" value={rule.from} style={miniInputStyle}
+            onChange={e => onChange({ ...rule, from: e.target.value })}/>
+        </div>
+        <span style={{ color:T.subtle, paddingBottom:8 }}>–</span>
+        <div style={{ flex:1 }}>
+          <label style={miniLabelStyle}>To #</label>
+          <input type="number" min="1" placeholder="10" value={rule.to} style={miniInputStyle}
+            onChange={e => onChange({ ...rule, to: e.target.value })}/>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+        <div>
+          <label style={miniLabelStyle}>Header</label>
+          <input type="text" placeholder="e.g. Easy Puzzles" value={rule.header} style={miniInputStyle}
+            onChange={e => onChange({ ...rule, header: e.target.value })}/>
+        </div>
+        <div>
+          <label style={miniLabelStyle}>Footer</label>
+          <input type="text" placeholder="e.g. Section A" value={rule.footer} style={miniInputStyle}
+            onChange={e => onChange({ ...rule, footer: e.target.value })}/>
+        </div>
+      </div>
     </div>
   )
 }
@@ -623,42 +650,31 @@ function RangeRulesEditor({ rules, onChange, enabled, onToggle }) {
   }
 
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 14 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon.Book s={14} c={T.violet}/>
           <span style={{ fontSize:11, fontWeight:700, color:'#e2e8f0', letterSpacing:'.01em' }}>Header/Footer by Number Range</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <button onClick={addRule} style={{
-            fontSize:11, fontWeight:600, color:T.violet, background:'rgba(124,58,237,0.12)',
-            border:`1px solid ${T.accent}40`, borderRadius:8, padding:'5px 10px', cursor:'pointer',
-          }}>+ Add range</button>
-          <button onClick={disable} title="Disable" style={{
-            width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
-            background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:6, cursor:'pointer',
-          }}><Icon.X s={11} c={T.red}/></button>
-        </div>
+        <button onClick={disable} style={{
+          fontSize:11, fontWeight:600, color:T.subtle, background:'none',
+          border:'none', cursor:'pointer', padding:'4px 2px',
+        }}>Disable</button>
       </div>
 
-      {rules.length === 0 ? (
-        <div style={{ fontSize:11, color:T.subtle, lineHeight:1.4 }}>
-          Override the header/footer text for specific puzzle number ranges (e.g. puzzles 1–20 get one header, 21–40 another). Leave empty to use the header/footer above for the whole book.
-        </div>
-      ) : (
-        <>
-          <div style={{ display:'grid', gridTemplateColumns:'48px 48px 1fr 1fr 24px', gap:6, marginBottom:6 }}>
-            <span style={miniLabelStyle}>From</span>
-            <span style={miniLabelStyle}>To</span>
-            <span style={miniLabelStyle}>Header</span>
-            <span style={miniLabelStyle}>Footer</span>
-            <span/>
-          </div>
-          {rules.map(r => (
-            <RangeRow key={r.id} rule={r} onChange={next => updateRule(r.id, next)} onRemove={() => removeRule(r.id)}/>
-          ))}
-        </>
-      )}
+      <div style={{ fontSize:11, color:T.subtle, lineHeight:1.4, marginBottom:12 }}>
+        Override the header/footer for specific puzzle number ranges (e.g. puzzles 1–20 vs 21–40). Leave a range's header/footer empty to fall back to the default above.
+      </div>
+
+      {rules.map((r, i) => (
+        <RangeRow key={r.id} index={i} rule={r} onChange={next => updateRule(r.id, next)} onRemove={() => removeRule(r.id)}/>
+      ))}
+
+      <button onClick={addRule} style={{
+        width:'100%', fontSize:12, fontWeight:600, color:T.violet,
+        background:'rgba(124,58,237,0.1)', border:`1px solid ${T.accent}30`,
+        borderRadius:10, padding:'9px 0', cursor:'pointer',
+      }}>+ Add range</button>
     </div>
   )
 }
