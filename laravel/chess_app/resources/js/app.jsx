@@ -222,14 +222,14 @@ function PagePreview({ bg, hfBg }) {
 }
 
 /* ── one small board inside the book preview ── */
-function MiniChessBoard({ pos, dark, light, cellSize, answerCount }) {
+function MiniChessBoard({ pos, dark, light, cellSize, answerCount, fontColor = '#111111' }) {
   const sideText = pos.side === 'b' ? 'Black' : 'White'
   return (
     <div style={{ flex: 1, border: '1px solid #333', borderRadius: 2, overflow: 'hidden', background: '#fff' }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between',
         fontSize: Math.max(5, cellSize * 0.34), fontWeight: 700,
-        padding: '1px 3px', borderBottom: '1px solid #ccc', color: '#111',
+        padding: '1px 3px', borderBottom: '1px solid #ccc', color: fontColor,
       }}>
         <span>No.{pos.number}</span><span>{sideText}</span>
       </div>
@@ -241,7 +241,7 @@ function MiniChessBoard({ pos, dark, light, cellSize, answerCount }) {
                 width: cellSize, height: cellSize,
                 background: (r + c) % 2 !== 0 ? dark : light,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: cellSize * 0.72, lineHeight: 1, color: '#111',
+                fontSize: cellSize * 0.72, lineHeight: 1, color: fontColor,
               }}>{piece}</div>
             ))}
           </div>
@@ -269,7 +269,7 @@ function resolveHeaderFooter(number, rangeRules, defaultHeader, defaultFooter) {
   return [defaultHeader, defaultFooter]
 }
 
-function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor, pageSize, rangeRules = [] }) {
+function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, lightColor, bgColor, hfBgColor, fontColor = '#111111', pageSize, rangeRules = [] }) {
   const pp   = parseInt(perPage, 10) || 4
   const cols = pp >= 4 ? 2 : 1
   const ac   = Math.max(0, parseInt(answerCount, 10) || 0)
@@ -393,14 +393,14 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
             display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
           }}>
-            {pageHeader && <span style={{ fontSize: 8, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{pageHeader}</span>}
+            {pageHeader && <span style={{ fontSize: 8, fontWeight: 700, color: fontColor, whiteSpace: 'nowrap' }}>{pageHeader}</span>}
           </div>
 
           <div style={{ flex: 1, padding: `8px ${padX}px`, display: 'flex', flexDirection: 'column', gap: colGap }}>
             {rows.map((rowItems, ri) => (
               <div key={ri} style={{ display: 'flex', gap: colGap }}>
                 {rowItems.map(pos => (
-                  <MiniChessBoard key={pos.number} pos={pos} dark={darkColor} light={lightColor} cellSize={cellSize} answerCount={ac}/>
+                  <MiniChessBoard key={pos.number} pos={pos} dark={darkColor} light={lightColor} cellSize={cellSize} answerCount={ac} fontColor={fontColor}/>
                 ))}
                 {rowItems.length < cols && <div style={{ flex: 1 }}/>}
               </div>
@@ -413,8 +413,8 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
             transition: 'background .25s',
           }}>
-            {pageFooter && <span style={{ fontSize: 7, color: '#111', whiteSpace: 'nowrap' }}>{pageFooter}</span>}
-            {pageFooter && <span style={{ fontSize: 7, color: '#111' }}>{safeIdx + 1}</span>}
+            {pageFooter && <span style={{ fontSize: 7, color: fontColor, whiteSpace: 'nowrap' }}>{pageFooter}</span>}
+            {pageFooter && <span style={{ fontSize: 7, color: fontColor }}>{safeIdx + 1}</span>}
           </div>
         </div>
       )}
@@ -900,6 +900,7 @@ function App() {
   const [lightColor, setLightColor]   = useState('#ffffff')
   const [bgColor, setBgColor]         = useState('#ffffff')
   const [hfBgColor, setHfBgColor]     = useState('#ffffff')
+  const [fontColor, setFontColor]     = useState('#111111')
   const [pageSize, setPageSize]       = useState('A4')
   const [rangeRules, setRangeRules]   = useState([])
   const [rangeEnabled, setRangeEnabled] = useState(false)
@@ -944,6 +945,7 @@ function App() {
     form.append('light_color', lightColor)
     form.append('bg_color', bgColor)
     form.append('hf_bg_color', hfBgColor)
+    form.append('font_color', fontColor)
     form.append('page_size', pageSize)
     const validRangeRules = rangeRules
       .map(r => ({ from: parseInt(r.from, 10), to: parseInt(r.to, 10), header: r.header || '', footer: r.footer || '' }))
@@ -1178,11 +1180,12 @@ function App() {
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                       <ColorInput label="Page background" value={bgColor} onChange={setBgColor}/>
                       <ColorInput label="Header/footer background" value={hfBgColor} onChange={setHfBgColor}/>
+                      <ColorInput label="Font color" value={fontColor} onChange={setFontColor}/>
                     </div>
                     <PagePreview bg={bgColor} hfBg={hfBgColor}/>
                   </div>
                   <div style={{ fontSize:11, color:T.subtle, marginTop:8, lineHeight:1.4 }}>
-                    Page background fills each sheet; header/footer bands use their own color.
+                    Page background fills each sheet; header/footer bands use their own color. Font color applies to piece symbols, header/footer text, and board labels.
                   </div>
                 </div>
               </div>
@@ -1233,6 +1236,7 @@ function App() {
                 lightColor={lightColor}
                 bgColor={bgColor}
                 hfBgColor={hfBgColor}
+                fontColor={fontColor}
                 pageSize={pageSize}
                 rangeRules={rangeRules}
               />

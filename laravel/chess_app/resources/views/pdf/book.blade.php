@@ -49,7 +49,7 @@ $footerMarginTop = $px(10); $footerPadTop = $px(4); $footerNumColW = $px(40);
 <meta charset="utf-8"/>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColor }}; font-size: 10px; }
+body { font-family: DejaVu Sans, sans-serif; color: {{ $fontColor }}; background: {{ $bgColor }}; font-size: 10px; }
 
 .page  { padding: {{ $padTop }}px {{ $padSide }}px {{ $padBot }}px {{ $padSide }}px; page-break-after: always; }
 .page:last-child { page-break-after: auto; }
@@ -111,7 +111,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
     <tr>
       @foreach($rowItems as $pos)
       <td class="bcell" width="{{ $colW }}" style="width:{{ $colW }}px;">
-        @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale'))
+        @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale','fontColor'))
       </td>
       @endforeach
       @if(count($rowItems) < 2)
@@ -125,7 +125,7 @@ body { font-family: DejaVu Sans, sans-serif; color: #111; background: {{ $bgColo
   @else
   @foreach($pagePositions as $pos)
   <div style="margin-bottom:{{ $divMarginBottom }}px;">
-    @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale'))
+    @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale','fontColor'))
   </div>
   @endforeach
   @endif

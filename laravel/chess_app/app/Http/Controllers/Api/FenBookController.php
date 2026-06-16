@@ -25,6 +25,7 @@ class FenBookController extends Controller
             'light_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'bg_color'     => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'hf_bg_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'font_color'   => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'page_size'    => 'nullable|in:A4,A5',
             'range_rules'  => 'nullable|string',
         ]);
@@ -62,6 +63,7 @@ class FenBookController extends Controller
             'lightColor'  => $request->input('light_color', '#ffffff'),
             'bgColor'     => $request->input('bg_color',    '#ffffff'),
             'hfBgColor'   => $request->input('hf_bg_color', '#ffffff'),
+            'fontColor'   => $request->input('font_color',  '#111111'),
             'pageSize'    => $pageSize,
         ])->setPaper(strtolower($pageSize), 'portrait');
 

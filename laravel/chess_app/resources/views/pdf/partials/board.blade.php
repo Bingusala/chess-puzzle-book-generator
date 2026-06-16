@@ -32,7 +32,7 @@
       $piece = $pos['board'][$r][$c];
     @endphp
     <td class="sq"
-        style="background:{{ $dark ? $darkColor : $lightColor }}; width:{{ $cellW }}px; height:{{ $cellW }}px; font-size:{{ $piece ? $pieceF.'px' : '1px' }}; color:{{ $piece ? '#111' : 'transparent' }};">{!! $piece ?: '&nbsp;' !!}</td>
+        style="background:{{ $dark ? $darkColor : $lightColor }}; width:{{ $cellW }}px; height:{{ $cellW }}px; font-size:{{ $piece ? $pieceF.'px' : '1px' }}; color:{{ $piece ? $fontColor : 'transparent' }};">{!! $piece ?: '&nbsp;' !!}</td>
     @endfor
   </tr>
   @endfor
