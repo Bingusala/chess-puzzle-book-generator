@@ -932,7 +932,7 @@ function App() {
   return (
     <>
       <InjectCSS/>
-      <div className="chess-bg" style={{ minHeight:'100vh', padding:'48px 20px 60px' }}>
+      <div className="chess-bg" style={{ minHeight:'100vh', padding:'48px 20px 60px', zoom:1.15 }}>
 
         {/* ── Hero header ── */}
         <div style={{ textAlign:'center', marginBottom:48 }}>
