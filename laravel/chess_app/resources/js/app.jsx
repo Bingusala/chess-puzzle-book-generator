@@ -325,7 +325,18 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const bandH2  = Math.max(7, Math.round(13 * psScale))
   const innerW  = sheetW - padX * 2
   const colW    = cols === 2 ? (innerW - colGap) / 2 : innerW
-  const cellSize = colW / 8
+  const cellSizeW = colW / 8
+
+  // Boards per page also determines row count (e.g. 8/page = 4 rows of 2),
+  // so cellSize must also respect available height, not just column width —
+  // otherwise more-rows-per-page settings (8, 2) overflow the fixed sheet height.
+  const maxRows  = Math.max(1, Math.ceil(pp / cols))
+  const innerH   = sheetH - bandH1 - bandH2 - 16
+  const rowK     = 8.5 + (ac > 0 ? 0.2 : 0)
+  const rowC     = 6 + (ac > 0 ? 5 : 0)
+  const cellSizeH = (innerH - maxRows * rowC - (maxRows - 1) * colGap) / (maxRows * rowK)
+
+  const cellSize = Math.max(3, Math.floor(Math.min(cellSizeW, cellSizeH) * 0.98))
 
   return (
     <div ref={containerRef}>
