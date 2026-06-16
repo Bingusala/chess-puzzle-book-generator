@@ -1,0 +1,11 @@
+# Leftover scaffold from an earlier setup attempt, superseded by laravel/chess_app/
+/laravel/.env.example
+/laravel/package.json
+/laravel/postcss.config.js
+/laravel/tailwind.config.js
+/laravel/vite.config.js
+/laravel/setup.bat
+/laravel/resources/
+/laravel/routes/
+/laravel/app/
+/laravel/database/
