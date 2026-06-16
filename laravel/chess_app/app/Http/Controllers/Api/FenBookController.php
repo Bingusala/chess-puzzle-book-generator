@@ -20,7 +20,7 @@ class FenBookController extends Controller
             'header'       => 'nullable|string|max:200',
             'footer'       => 'nullable|string|max:200',
             'answer_count' => 'nullable|integer|min:0|max:10',
-            'per_page'     => 'nullable|integer|in:1,2,4',
+            'per_page'     => 'nullable|integer|in:1,2,4,8',
             'dark_color'   => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'light_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);

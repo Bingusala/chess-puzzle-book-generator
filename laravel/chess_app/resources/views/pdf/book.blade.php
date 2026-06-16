@@ -3,6 +3,7 @@
  * DomPDF A4: 794px × 1123px at 96dpi
  * Page padding: 22px top / 18px bottom / 25px sides → content 744px × ~1083px
  *
+ * perPage=8 (2 cols × 4 rows): cellW=20, boardW=167   [table layout]
  * perPage=4 (2 cols × 2 rows): cellW=42, boardW=350   [table layout]
  * perPage=2 (1 col × 2 rows): cellW=48, boardW=400   [div layout — avoids DomPDF td-stretch]
  * perPage=1 (1 col × 1 row):  cellW=80, boardW=666   [div layout]
@@ -14,7 +15,9 @@
  * DomPDF stretches nested tables to fill parent <td> width even with explicit px widths,
  * which inflates cellW from 48→88 and causes single-board-per-page overflow.
  */
-if ($perPage >= 4) {
+if ($perPage >= 8) {
+    $cols = 2; $colW = 372; $cellW = 20; $coordW = 7; $pieceF = 13; $coordF = 7;
+} elseif ($perPage == 4) {
     $cols = 2; $colW = 372; $cellW = 42; $coordW = 14; $pieceF = 28; $coordF = 9;
 } elseif ($perPage == 2) {
     $cols = 1; $colW = 744; $cellW = 48; $coordW = 16; $pieceF = 32; $coordF = 11;

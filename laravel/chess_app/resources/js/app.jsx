@@ -304,7 +304,7 @@ function PageToggle({ value, onChange }) {
         Boards per page
       </label>
       <div style={{ display:'flex', gap:6 }}>
-        {['1','2','4'].map(v => (
+        {['1','2','4','8'].map(v => (
           <button key={v} onClick={() => onChange(v)} style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:14, fontWeight:600,
             border: `1px solid ${value===v ? T.accent : 'rgba(255,255,255,0.08)'}`,
