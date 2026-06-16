@@ -1080,7 +1080,11 @@ function App() {
           </div>
 
           {/* ══ RIGHT column ══ */}
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{
+            display:'flex', flexDirection:'column', gap:16,
+            position:'sticky', top:20, alignSelf:'start',
+            maxHeight:'calc(100vh - 40px)', overflowY:'auto',
+          }}>
 
             {/* Live book preview card */}
             <Card>
