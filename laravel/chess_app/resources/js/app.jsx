@@ -297,6 +297,19 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const [pageIdx, setPageIdx] = useState(0)
   useEffect(() => { setPageIdx(0) }, [fens, perPage])
 
+  const containerRef = useRef(null)
+  const [containerW, setContainerW] = useState(280)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width
+      if (w) setContainerW(w)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const totalPages = pages.length
   const safeIdx = Math.min(pageIdx, Math.max(0, totalPages - 1))
   const current = pages[safeIdx] || []
@@ -304,7 +317,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   for (let i = 0; i < current.length; i += cols) rows.push(current.slice(i, i + cols))
   const [pageHeader, pageFooter] = resolveHeaderFooter(current[0]?.number ?? 1, rangeRules, header, footer)
 
-  const sheetW  = Math.round(280 * psScale)
+  const sheetW  = Math.round(containerW * psScale)
   const sheetH  = Math.round(sheetW * 1123 / 744)
   const padX    = Math.round(14 * psScale)
   const colGap  = Math.round(8 * psScale)
@@ -315,7 +328,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const cellSize = colW / 8
 
   return (
-    <div>
+    <div ref={containerRef}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon.Book s={14} c={T.violet}/>
@@ -864,6 +877,7 @@ function StatusBanner({ status }) {
 
 /* ── main app ── */
 function App() {
+  const [view, setView]               = useState('intro')
   const [file, setFile]               = useState(null)
   const [preview, setPreview]         = useState('')
   const [header, setHeader]           = useState('')
@@ -996,6 +1010,67 @@ function App() {
             Upload a PGN or FEN file and export a beautifully formatted chess puzzle PDF book
           </p>
         </div>
+
+        {view === 'intro' ? (
+        /* ── Intro screen: How it works + Get Started ── */
+        <div style={{ maxWidth: 480, margin: '0 auto', display:'flex', flexDirection:'column', gap:20 }}>
+          <Card>
+            <SectionLabel icon={<Icon.Book s={14} c={T.violet}/>}>
+              How it works
+            </SectionLabel>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              {[
+                { n:'01', t:'Upload', d:'A PGN file with [FEN "..."] tags, or a plain text file with one FEN per line' },
+                { n:'02', t:'Customize', d:'Set header, footer text, number of answer lines, and boards per page' },
+                { n:'03', t:'Create Book', d:'Click below to generate and download your formatted PDF book' },
+              ].map(({ n, t, d }) => (
+                <div key={n} style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <div style={{
+                    flexShrink:0, width:28, height:28, borderRadius:8,
+                    background:`linear-gradient(135deg,${T.accent}25,${T.accent2}15)`,
+                    border:`1px solid ${T.accent}35`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:10, fontWeight:800, color:T.violet,
+                  }}>{n}</div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#cbd5e1', marginBottom:2 }}>{t}</div>
+                    <div style={{ fontSize:12, color:T.subtle, lineHeight:1.5 }}>{d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <button
+            onClick={() => setView('main')}
+            style={{
+              width:'100%', padding:'16px 24px',
+              borderRadius:14, border:'none',
+              background: `linear-gradient(135deg, ${T.accent}, ${T.accent2})`,
+              color:'#fff', fontSize:15, fontWeight:700,
+              cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+              boxShadow: `0 4px 24px ${T.accent}50, 0 0 0 1px ${T.accent}40`,
+              transition:'all .25s',
+              animation:'glow 2.5s ease-in-out infinite',
+            }}
+          >
+            Get Started →
+          </button>
+        </div>
+        ) : (
+        <>
+        <button
+          onClick={() => setView('intro')}
+          style={{
+            display:'flex', alignItems:'center', gap:6,
+            background:'none', border:'none', cursor:'pointer',
+            color:T.subtle, fontSize:13, fontWeight:600,
+            margin:'0 auto 16px', maxWidth:960, width:'100%',
+          }}
+        >
+          ← Back
+        </button>
 
         {/* ── Main 2-col grid ── */}
         <div style={{
@@ -1152,36 +1227,10 @@ function App() {
               />
             </Card>
 
-            {/* How it works card */}
-            <Card>
-              <SectionLabel icon={<Icon.Book s={14} c={T.violet}/>}>
-                How it works
-              </SectionLabel>
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {[
-                  { n:'01', t:'Upload', d:'A PGN file with [FEN "..."] tags, or a plain text file with one FEN per line' },
-                  { n:'02', t:'Customize', d:'Set header, footer text, number of answer lines, and boards per page' },
-                  { n:'03', t:'Create Book', d:'Click below to generate and download your formatted PDF book' },
-                ].map(({ n, t, d }) => (
-                  <div key={n} style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-                    <div style={{
-                      flexShrink:0, width:28, height:28, borderRadius:8,
-                      background:`linear-gradient(135deg,${T.accent}25,${T.accent2}15)`,
-                      border:`1px solid ${T.accent}35`,
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:10, fontWeight:800, color:T.violet,
-                    }}>{n}</div>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#cbd5e1', marginBottom:2 }}>{t}</div>
-                      <div style={{ fontSize:12, color:T.subtle, lineHeight:1.5 }}>{d}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
           </div>
         </div>
+        </>
+        )}
       </div>
     </>
   )
