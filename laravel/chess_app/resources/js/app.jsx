@@ -321,8 +321,9 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
   const sheetH  = Math.round(sheetW * 1123 / 744)
   const padX    = Math.round(14 * psScale)
   const colGap  = Math.round(8 * psScale)
-  const bandH1  = Math.max(8, Math.round(16 * psScale))
-  const bandH2  = Math.max(7, Math.round(13 * psScale))
+  // 1 cm bands — scale with sheet width the same way DomPDF does (38 px per cm at 96 dpi, A4 content = 744 px)
+  const bandH1  = Math.max(5, Math.round(38 * sheetW / 744))
+  const bandH2  = Math.max(5, Math.round(38 * sheetW / 744))
   const innerW  = sheetW - padX * 2
   const colW    = cols === 2 ? (innerW - colGap) / 2 : innerW
   const cellSizeW = colW / 8
