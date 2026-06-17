@@ -80,8 +80,10 @@ $boardBoxH = $boardHdrH + 8 * $cellW + $coordW;
 // Gap between boards in single-column layout (NOT applied after the last board)
 $divGap = $px(10);
 
-// Small safety buffer so xPad never over-fills the page
-$safetyH = 8;
+// Safety buffer: DomPDF renders header/footer bands ~2–3 px taller than stated
+// (lineheight > font-size). safetyH=30 reduces xPad enough to leave ~20 px slack
+// so the footer never overflows to a blank next page.
+$safetyH = 30;
 @endphp
 <!DOCTYPE html>
 <html>
