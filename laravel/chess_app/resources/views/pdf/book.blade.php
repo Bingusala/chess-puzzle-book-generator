@@ -1,63 +1,87 @@
 @php
 /**
- * All pixel constants below are tuned for DomPDF A4 (794px × 1123px at 96dpi,
- * content 744px × ~1083px after page padding). For A5 — exactly an A4 sheet
- * folded in half, same aspect ratio — every constant is scaled down by the
- * same linear factor (~0.705 ≈ 1/√2) so the whole layout shrinks uniformly
- * instead of needing a second hand-tuned set of values per perPage tier.
+ * Slot-based layout — 0.5 cm header/footer bands, remaining height divided
+ * equally among board rows so content is guaranteed to fit on one PDF page.
  *
- * Header/footer bands are fixed at 1 cm (38 px at 96 dpi) on both A4 and A5.
- * Available for boards on A4: 1083 − 52 (header+margin) − 48 (footer+margin) = 983 px.
- *
- * perPage=8 (2 cols × 4 rows) @ A4: cellW=22, boardW=183   [table layout — height-constrained]
- * perPage=4 (2 cols × 2 rows) @ A4: cellW=43, boardW=358   [table layout — width-constrained]
- * perPage=2 (1 col × 2 rows)  @ A4: cellW=51, boardW=424   [div layout — height-constrained]
- * perPage=1 (1 col × 1 row)   @ A4: cellW=89, boardW=738   [div layout — width-constrained]
- *
- * Height budget for perPage=2: 2×(22+408+16+22+14) = 964 px ≤ 983 ✓
+ * perPage=8 (2 cols × 4 rows) — table layout, height-constrained
+ * perPage=4 (2 cols × 2 rows) — table layout, width-constrained
+ * perPage=2 (1 col  × 2 rows) — div layout,   height-constrained
+ * perPage=1 (1 col  × 1 row)  — div layout,   width-constrained
  *
  * IMPORTANT: single-column layouts must use <div> wrappers, NOT a <table> cell.
  * DomPDF stretches nested tables to fill parent <td> width even with explicit px widths,
- * which inflates cellW from 48→88 and causes single-board-per-page overflow.
+ * which inflates single-board layouts and causes overflow.
  */
 $scale = ($pageSize ?? 'A4') === 'A5' ? 0.705 : 1.0;
 $px = fn($n) => max(1, (int) round($n * $scale));
 
-if ($perPage >= 8) {
-    $cols = 2; $cellW = $px(22); $coordW = $px(7);  $pieceF = $px(14); $coordF = $px(7);
-} elseif ($perPage == 4) {
-    $cols = 2; $cellW = $px(43); $coordW = $px(14); $pieceF = $px(29); $coordF = $px(9);
-} elseif ($perPage == 2) {
-    $cols = 1; $cellW = $px(51); $coordW = $px(16); $pieceF = $px(34); $coordF = $px(11);
-} else {
-    $cols = 1; $cellW = $px(89); $coordW = $px(26); $pieceF = $px(60); $coordF = $px(16);
-}
+// 0.5 cm header/footer bands — NOT scaled; 0.5 cm ≈ 19 px at 96 dpi on A4 and A5
+$bandH   = 19;  $hdrFont = 10;  $ftrFont = 9;
+$hdrPadV = max(1, (int) floor(($bandH - $hdrFont - 2) / 2));
+$ftrPadV = max(1, (int) floor(($bandH - $ftrFont - 2) / 2));
+
+// Page geometry
+$padTop  = $px(22); $padSide = $px(25); $padBot = $px(18);
+$tableW  = $px(744);
+$colW    = intdiv($tableW, 2);
+$contentH = $px(1083);   // A4 = 1083 px; A5 ≈ 764 px via $px()
+
+// Header/footer overhead (band + gap to first/last board)
+$hdrGap  = $px(8);
+$ftrGap  = $px(6);
+$hdrOvhd = $bandH + $hdrGap;   // 27 px on A4
+$ftrOvhd = $ftrGap + $bandH;   // 25 px on A4
+
+// Grid shape
+if     ($perPage >= 8) { $cols = 2; $numRows = 4; }
+elseif ($perPage == 4) { $cols = 2; $numRows = 2; }
+elseif ($perPage == 2) { $cols = 1; $numRows = 2; }
+else                   { $cols = 1; $numRows = 1; }
+
+// Slot height: total rows-area divided equally (worst-case: header + footer both present)
+$rowsAvailH = $contentH - $hdrOvhd - $ftrOvhd;
+$slotH      = (int) floor($rowsAvailH / $numRows);
+
+// Fixed per-slot overhead
+$bcellPadTop = $px($cols === 2 ? 3 : 5);
+$bcellPadBot = $px($cols === 2 ? 5 : 7);
+$bcellPadX   = $px(6);
+$bhPadY  = $px(3);
+$bhPadX  = $px(5);
+$bhFont  = $px(9);
+// DomPDF renders text at lineheight ≈ 1.2× font-size; +2 for border-bottom + rounding
+$boardHdrH = $bhPadY * 2 + (int) round($bhFont * 1.2) + 2;
+
+$ansRowMarginTop = $px(5);
+$ansHeight       = $px(11);
+$footerNumColW   = $px(40);
+$ansH = $answerCount > 0 ? ($ansRowMarginTop + $ansHeight) : 0;
+
+// Derive cellW from slot height
+// Slot budget: bcellPadTop + boardHdrH + 8×cellW + coordW + ansH + bcellPadBot = slotH
+// coordW ≈ 0.30 × cellW  →  (8.30) × cellW = slotH − fixed overhead
+// +4: DomPDF renders board-box outer border outside stated px dims (~3 px)
+$headroom = $bcellPadTop + $bcellPadBot + $boardHdrH + $ansH + 4;
+$cellW_h  = max(6, (int) floor(max(1, $slotH - $headroom) / 8.30));
+
+// Width constraint: board must fit in its column (or full tableW for 1-col)
+$freeW   = ($cols === 2) ? ($colW - 2 * $bcellPadX) : $tableW;
+$cellW_w = max(6, (int) floor($freeW / 8.30));
+
+$cellW  = min($cellW_h, $cellW_w);
+$coordW = max(4, (int) round($cellW * 0.30));
 $boardW = $coordW + 8 * $cellW;
-$tableW = $px(744);
-$colW   = intdiv($tableW, 2);
+$pieceF = max(6, (int) round($cellW * 0.67));
+$coordF = max(5, (int) round($cellW * 0.22));
 
-$padTop = $px(22); $padSide = $px(25); $padBot = $px(18);
-$bhFont = $px(11);
-$hdrMargin = $px(14);
-$bcellPadTop = $px(5); $bcellPadX = $px(6); $bcellPadBot = $px(10);
-$bhPadY = $px(5); $bhPadX = $px(7);
-$ansRowMarginTop = $px(8); $ansHeight = $px(14);
-$divMarginBottom = $px(14);
-$footerMarginTop = $px(10); $footerNumColW = $px(40);
-// 1 cm header/footer bands — NOT scaled; 1 cm ≈ 38 px at DomPDF's 96 dpi on both A4 and A5
-$bandH = 38; $hdrFont = 14; $ftrFont = 11;
-$hdrPadV = (int) floor(($bandH - $hdrFont - 2) / 2);  // 11 px — vertical centering
-$ftrPadV = (int) floor(($bandH - $ftrFont - 2) / 2);  // 12 px — vertical centering
+// Board-box calculated height (outer border excluded — DomPDF renders it outside stated dims)
+$boardBoxH = $boardHdrH + 8 * $cellW + $coordW;
 
-// Space-fill: compute board-box height so per-page leftover can be distributed as extra padding
-$boardBoxH = ($bhPadY + $bhFont + $bhPadY + 1) + 8 * $cellW + $coordW;
-$ansH      = $answerCount > 0 ? ($ansRowMarginTop + $ansHeight) : 0;
-$contentH  = $px(1083);                  // A4 = 1083 px; A5 ≈ 764 px via $px()
-$hdrOvhd   = $bandH + $hdrMargin;        // header band + gap-below (52 px for A4)
-$ftrOvhd   = $footerMarginTop + $bandH;  // gap-above + footer band (48 px for A4)
-// DomPDF renders borders outside the stated px dims ($boardBoxH, $bandH exclude the 1.5px table borders).
-// 0.7-factor on header/footer: use a 30px safety so xPad never over-packs the page.
-$safetyH   = 30;
+// Gap between boards in single-column layout (NOT applied after the last board)
+$divGap = $px(10);
+
+// Small safety buffer so xPad never over-fills the page
+$safetyH = 8;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -73,7 +97,7 @@ body { font-family: DejaVu Sans, sans-serif; color: {{ $fontColor }}; background
 .p-header {
   font-size: {{ $hdrFont }}px; font-weight: bold;
   border-bottom: 1.5px solid #111;
-  padding: {{ $hdrPadV }}px 0; margin-bottom: {{ $hdrMargin }}px;
+  padding: {{ $hdrPadV }}px 0; margin-bottom: {{ $hdrGap }}px;
   width: {{ $tableW }}px;
   background: {{ $hfBgColor }};
 }
@@ -101,12 +125,12 @@ body { font-family: DejaVu Sans, sans-serif; color: {{ $fontColor }}; background
 .co-rank { text-align: center; vertical-align: middle; color: #444; border-right: 1px solid #ccc; }
 .co-file { text-align: center; vertical-align: middle; color: #444; border-top: 1px solid #ccc; }
 
-/* answer lines below board: short segments placed side by side in one row */
+/* answer lines below board */
 .ans-row { margin-top: {{ $ansRowMarginTop }}px; white-space: nowrap; }
 .ans { display: inline-block; border-bottom: 1px solid #888; height: {{ $ansHeight }}px; }
 
 /* page footer */
-.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: {{ $footerMarginTop }}px; background: {{ $hfBgColor }}; }
+.p-footer { border-collapse: collapse; table-layout: fixed; margin-top: {{ $ftrGap }}px; background: {{ $hfBgColor }}; }
 .p-footer td { font-size: {{ $ftrFont }}px; border-top: 1.5px solid #111; padding: {{ $ftrPadV }}px 0; }
 </style>
 </head>
@@ -118,9 +142,8 @@ $pagePositions = $page['positions'];
 $pageHeader    = $page['header'];
 $pageFooter    = $page['footer'];
 
-// Leftover vertical space for this page → distribute as extra padding so boards fill the column
 $numBoards  = count($pagePositions);
-$numRows    = $cols === 2 ? (int)ceil($numBoards / 2) : $numBoards;
+$numRowsAct = $cols === 2 ? (int)ceil($numBoards / 2) : $numBoards;
 $pageAvailH = $contentH
               - ($pageHeader ? $hdrOvhd : 0)
               - ($pageFooter ? $ftrOvhd : 0)
@@ -128,14 +151,15 @@ $pageAvailH = $contentH
 
 if ($cols === 2) {
     $rowH      = $bcellPadTop + $boardBoxH + $ansH + $bcellPadBot;
-    $xPad      = (int) floor(max(0, $pageAvailH - $numRows * $rowH) / $numRows / 2);
+    $xPad      = (int) floor(max(0, $pageAvailH - $numRowsAct * $rowH) / $numRowsAct / 2);
     $dynPadTop = $bcellPadTop + $xPad;
     $dynPadBot = $bcellPadBot + $xPad;
 } else {
-    $unitH        = $boardBoxH + $ansH + $divMarginBottom;
-    $xPad         = (int) floor(max(0, $pageAvailH - $numBoards * $unitH) / $numBoards / 2);
+    // Single-column: exclude trailing gap after last board so footer never overflows
+    $totalBoardH = $numBoards * ($boardBoxH + $ansH) + ($numBoards - 1) * $divGap;
+    $xPad        = (int) floor(max(0, $pageAvailH - $totalBoardH) / $numBoards / 2);
     $dynMarginTop = $xPad;
-    $dynMarginBot = $divMarginBottom + $xPad;
+    $dynMarginBot = $divGap + $xPad;   // between boards; last board gets only $xPad
 }
 @endphp
 <div class="page">
@@ -144,7 +168,7 @@ if ($cols === 2) {
   <div class="p-header">{{ $pageHeader }}</div>
   @endif
 
-  {{-- 2-column layout (perPage=4): table keeps boards side-by-side at fixed widths --}}
+  {{-- 2-column layout (perPage=8 or 4): table keeps boards side-by-side --}}
   @if($cols === 2)
   <table class="grid" width="{{ $tableW }}" style="width:{{ $tableW }}px;">
     @foreach(array_chunk($pagePositions, 2) as $rowItems)
@@ -161,10 +185,10 @@ if ($cols === 2) {
     @endforeach
   </table>
 
-  {{-- Single-column layout (perPage=1 or perPage=2): divs prevent DomPDF td-stretch --}}
+  {{-- Single-column layout (perPage=1 or 2): divs prevent DomPDF td-stretch --}}
   @else
   @foreach($pagePositions as $pos)
-  <div style="margin-top:{{ $dynMarginTop }}px; margin-bottom:{{ $dynMarginBot }}px;">
+  <div style="margin-top:{{ $dynMarginTop }}px; margin-bottom:{{ $loop->last ? $xPad : $dynMarginBot }}px;">
     @include('pdf.partials.board', compact('pos','cellW','coordW','pieceF','coordF','boardW','answerCount','darkColor','lightColor','scale','fontColor'))
   </div>
   @endforeach
