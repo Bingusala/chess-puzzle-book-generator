@@ -55,6 +55,9 @@ $ansH      = $answerCount > 0 ? ($ansRowMarginTop + $ansHeight) : 0;
 $contentH  = $px(1083);                  // A4 = 1083 px; A5 ≈ 764 px via $px()
 $hdrOvhd   = $bandH + $hdrMargin;        // header band + gap-below (52 px for A4)
 $ftrOvhd   = $footerMarginTop + $bandH;  // gap-above + footer band (48 px for A4)
+// DomPDF renders borders outside the stated px dims ($boardBoxH, $bandH exclude the 1.5px table borders).
+// 0.7-factor on header/footer: use a 30px safety so xPad never over-packs the page.
+$safetyH   = 30;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -120,7 +123,8 @@ $numBoards  = count($pagePositions);
 $numRows    = $cols === 2 ? (int)ceil($numBoards / 2) : $numBoards;
 $pageAvailH = $contentH
               - ($pageHeader ? $hdrOvhd : 0)
-              - ($pageFooter ? $ftrOvhd : 0);
+              - ($pageFooter ? $ftrOvhd : 0)
+              - $safetyH;
 
 if ($cols === 2) {
     $rowH      = $bcellPadTop + $boardBoxH + $ansH + $bcellPadBot;
