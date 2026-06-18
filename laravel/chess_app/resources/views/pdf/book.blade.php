@@ -60,8 +60,8 @@ $bhFont  = $px(9);
 // DomPDF renders text at lineheight ≈ 1.2× font-size; +2 for border-bottom + rounding
 $boardHdrH = $bhPadY * 2 + (int) round($bhFont * 1.2) + 2;
 
-$ansRowMarginTop = $px(5);
-$ansHeight       = $px(11);
+$ansRowMarginTop = $px(10);
+$ansHeight       = $px(28);
 $footerNumColW   = $px(40);
 $ansH = $answerCount > 0 ? ($ansRowMarginTop + $ansHeight) : 0;
 
