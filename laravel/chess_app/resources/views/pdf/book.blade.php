@@ -16,7 +16,7 @@ $scale = ($pageSize ?? 'A4') === 'A5' ? 0.705 : 1.0;
 $px = fn($n) => max(1, (int) round($n * $scale));
 
 // 0.5 cm header/footer bands — NOT scaled; 0.5 cm ≈ 19 px at 96 dpi on A4 and A5
-$bandH   = 19;  $hdrFont = 10;  $ftrFont = 9;
+$bandH   = 19;  $hdrFont = 16;  $ftrFont = 14;
 $hdrPadV = max(1, (int) floor(($bandH - $hdrFont - 2) / 2));
 $ftrPadV = max(1, (int) floor(($bandH - $ftrFont - 2) / 2));
 
