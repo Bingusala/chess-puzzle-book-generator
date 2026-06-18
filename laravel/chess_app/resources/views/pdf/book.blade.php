@@ -38,8 +38,16 @@ elseif ($perPage == 4) { $cols = 2; $numRows = 2; }
 elseif ($perPage == 2) { $cols = 1; $numRows = 2; }
 else                   { $cols = 1; $numRows = 1; }
 
+// Safety buffer: DomPDF renders elements 2–3 px taller than stated sizes
+// (line-height > font-size; outer table borders extend outside declared dims).
+// Baked into slot sizing so boards are guaranteed to leave this much slack on the page.
+// 80 px gives ~35 px headroom even when DomPDF still applies a 1.2 cm @page margin.
+// A5 8-board needs more room than A4 8-board: the scaled ansHeight (8 px) is
+// smaller than the default 12 px line-height, inflating each row more than A4.
+$safetyH    = 80;
+
 // Slot height: total rows-area divided equally (worst-case: header + footer both present)
-$rowsAvailH = $contentH - $hdrOvhd - $ftrOvhd;
+$rowsAvailH = $contentH - $hdrOvhd - $ftrOvhd - $safetyH;
 $slotH      = (int) floor($rowsAvailH / $numRows);
 
 // Fixed per-slot overhead
@@ -80,16 +88,13 @@ $boardBoxH = $boardHdrH + 8 * $cellW + $coordW;
 // Gap between boards in single-column layout (NOT applied after the last board)
 $divGap = $px(10);
 
-// Safety buffer: DomPDF renders header/footer bands ~2–3 px taller than stated
-// (lineheight > font-size). safetyH=30 reduces xPad enough to leave ~20 px slack
-// so the footer never overflows to a blank next page.
-$safetyH = 30;
 @endphp
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <style>
+@page { margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: DejaVu Sans, sans-serif; color: {{ $fontColor }}; background: {{ $bgColor }}; font-size: 10px; }
 

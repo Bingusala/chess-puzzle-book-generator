@@ -397,7 +397,7 @@ function BookPreview({ fens, perPage, header, footer, answerCount, darkColor, li
             {pageHeader && <span style={{ fontSize: 8, fontWeight: 700, color: fontColor, whiteSpace: 'nowrap' }}>{pageHeader}</span>}
           </div>
 
-          <div style={{ flex: 1, padding: `8px ${padX}px`, display: 'flex', flexDirection: 'column', gap: colGap }}>
+          <div style={{ flex: 1, padding: `8px ${padX}px`, display: 'flex', flexDirection: 'column', gap: colGap, justifyContent: 'space-evenly' }}>
             {rows.map((rowItems, ri) => (
               <div key={ri} style={{ display: 'flex', gap: colGap }}>
                 {rowItems.map(pos => (
